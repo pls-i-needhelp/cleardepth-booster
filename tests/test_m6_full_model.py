@@ -57,17 +57,27 @@ class TestClearDepthNet:
                 f"Pred {i}: expected {expected}, got {tuple(d.shape)}"
 
     def test_inference_mode_shape(self):
-        """Inference mode must return a single tensor (B, 1, H/4, W/4)."""
+        """
+        Inference mode must return a single full-resolution tensor.
+        test_mode=True runs ConvexUpsample on the GRU's 1/4-scale output,
+        so inference returns (B, 1, H_IMG, W_IMG), not the 1/4-scale shape.
+        """
         model = make_model()
         left  = torch.randn(BATCH, 3, H_IMG, W_IMG)
         right = torch.randn(BATCH, 3, H_IMG, W_IMG)
         final = model(left, right, n_iters=N_ITERS, test_mode=True)
         assert isinstance(final, torch.Tensor), \
             "Inference output must be a tensor, not a list"
-        assert final.shape == torch.Size((BATCH, 1, H_FEAT, W_FEAT))
+        assert final.shape == torch.Size((BATCH, 1, H_IMG, W_IMG))
 
-    def test_inference_matches_last_training_pred(self):
-        """Inference final pred must equal the last training prediction."""
+    def test_inference_is_upsampled_from_training_scale(self):
+        """
+        Inference output must be exactly upsample_scale times larger than
+        the last 1/4-scale training prediction. Pixel-exact equality with
+        preds[-1] is no longer a valid invariant — ConvexUpsample produces
+        a learned softmax-weighted blend of neighbouring coarse disparity
+        values, not an identity/nearest upsample of a single value.
+        """
         model = make_model()
         model.eval()
         left  = torch.randn(BATCH, 3, H_IMG, W_IMG)
@@ -75,7 +85,11 @@ class TestClearDepthNet:
         with torch.no_grad():
             preds = model(left, right, n_iters=N_ITERS, test_mode=False)
             final = model(left, right, n_iters=N_ITERS, test_mode=True)
-        torch.testing.assert_close(preds[-1], final)
+
+        scale = model.convex_upsample.scale
+        assert final.shape[-2] == preds[-1].shape[-2] * scale
+        assert final.shape[-1] == preds[-1].shape[-1] * scale
+        assert not torch.isnan(final).any() and not torch.isinf(final).any()
 
     def test_gradient_flows_end_to_end(self):
         """Gradients must reach the input images from the loss."""

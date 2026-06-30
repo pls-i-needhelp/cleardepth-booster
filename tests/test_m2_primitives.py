@@ -148,8 +148,14 @@ class TestMixFFN:
         out = ffn(x, H, W)
         assert out.shape == x.shape
 
-    def test_residual_connection(self):
-        """With zero-initialised weights, output ≈ input (residual check)."""
+    def test_no_internal_residual(self):
+        """
+        MixFFN has no internal residual connection — the skip lives in
+        ViTBlock (x = x + drop_path(ffn(norm(x)))). Adding a second
+        residual inside MixFFN would double-apply the skip. With
+        zero-initialised weights, fc2(GELU(dwconv(fc1(x)))) = 0, so the
+        output must be all zeros, not the input.
+        """
         import torch.nn as nn
         H, W = H_IMG // 4, W_IMG // 4
         ffn = MixFFN(dim=EMBED_C, mlp_ratio=4.0)
@@ -158,8 +164,7 @@ class TestMixFFN:
             nn.init.zeros_(p)
         x = torch.randn(BATCH, H * W, EMBED_C)
         out = ffn(x, H, W)
-        # With zero params, fc2(GELU(0)) = 0, so out = x + 0 = x
-        torch.testing.assert_close(out, x)
+        torch.testing.assert_close(out, torch.zeros_like(x))
 
     def test_gradient_flow(self):
         H, W = H_IMG // 4, W_IMG // 4
