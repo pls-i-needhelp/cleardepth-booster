@@ -35,7 +35,7 @@ def compute_metrics(
           'bad_0.5'  : % pixels with error > 0.5
           'bad_1.0'  : % pixels with error > 1.0
           'bad_2.0'  : % pixels with error > 2.0
-          'bad_3.0'  : % pixels with error > 3.0
+          'bad_4.0'  : % pixels with error > 4.0
     """
     # Valid pixel mask
     valid = (disp_gt > 0) & (disp_gt < max_disp)

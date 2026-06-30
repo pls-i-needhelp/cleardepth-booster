@@ -125,7 +125,7 @@ class TestMetrics:
         pred = torch.rand(BATCH, 1, H, W) * 100
         gt   = torch.rand(BATCH, 1, H, W) * 100 + 1.0
         m = compute_metrics(pred, gt)
-        for key in ['avg_err', 'rms', 'bad_0.5', 'bad_1.0', 'bad_2.0', 'bad_3.0']:
+        for key in ['avg_err', 'rms', 'bad_0.5', 'bad_1.0', 'bad_2.0', 'bad_4.0']:
             assert key in m, f"Missing metric key: {key}"
 
     def test_perfect_prediction_gives_zero_errors(self):
@@ -135,7 +135,7 @@ class TestMetrics:
         assert m['avg_err'] < 1e-5
         assert m['rms']     < 1e-5
         assert m['bad_0.5'] < 1e-5
-        assert m['bad_3.0'] < 1e-5
+        assert m['bad_4.0'] < 1e-5
 
     def test_rms_geq_avg_err(self):
         """RMS is always >= mean absolute error (by Jensen's inequality)."""
@@ -146,11 +146,11 @@ class TestMetrics:
             f"RMS ({m['rms']:.4f}) < AvgErr ({m['avg_err']:.4f})"
 
     def test_bad_thresholds_ordered(self):
-        """Bad-0.5 >= Bad-1.0 >= Bad-2.0 >= Bad-3.0 (looser threshold = fewer bad)."""
+        """Bad-0.5 >= Bad-1.0 >= Bad-2.0 >= Bad-4.0 (looser threshold = fewer bad)."""
         pred = torch.rand(BATCH, 1, H, W) * 10
         gt   = torch.rand(BATCH, 1, H, W) * 10 + 1.0
         m = compute_metrics(pred, gt)
-        assert m['bad_0.5'] >= m['bad_1.0'] >= m['bad_2.0'] >= m['bad_3.0'], \
+        assert m['bad_0.5'] >= m['bad_1.0'] >= m['bad_2.0'] >= m['bad_4.0'], \
             "Bad-N thresholds not monotonically ordered"
 
     def test_invalid_pixels_excluded(self):

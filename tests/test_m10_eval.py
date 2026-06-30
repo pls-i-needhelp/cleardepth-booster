@@ -188,7 +188,7 @@ class TestEvaluationPipeline:
             )
 
         # Check all expected metric keys are present
-        for key in ['avg_err', 'rms', 'bad_0.5', 'bad_1.0', 'bad_2.0', 'bad_3.0']:
+        for key in ['avg_err', 'rms', 'bad_0.5', 'bad_1.0', 'bad_2.0', 'bad_4.0']:
             assert key in results, f"Missing metric: {key}"
 
         # Metrics must be finite
